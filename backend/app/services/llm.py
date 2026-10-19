@@ -46,16 +46,23 @@ class OpenAICompatibleLLM:
 
 
 class ExtractiveStubLLM:
-    """Заглушка: отвечает первым предложением самого релевантного фрагмента со ссылкой [1].
-    Качество настоящей модели не отражает."""
+    """Заглушка: отвечает предложением самого релевантного фрагмента, которое лучше всего совпадает
+    с вопросом по словам, со ссылкой [1]. Качество настоящей модели не отражает."""
 
     def complete(self, messages: list[dict]) -> str:
         import re
 
+        def stems(text: str) -> set[str]:
+            return {w[:5] for w in re.findall(r"\w+", text.lower()) if len(w) > 2}
+
         context = messages[-1]["content"]
         m = re.search(r"\[1\] \([^)]*\)\n(.+?)(?:\n\n|\nВОПРОС:)", context, re.S)
-        first = re.split(r"(?<=[.!?])\s+", " ".join(m.group(1).split()))[0] if m else ""
-        return f"{first} [1]" if first else "NO_ANSWER"
+        if not m:
+            return "NO_ANSWER"
+        question = context.rsplit("ВОПРОС:", 1)[-1]
+        sentences = [s for s in re.split(r"(?<=[.!?])\s+", " ".join(m.group(1).split())) if s]
+        best = max(sentences, key=lambda s: len(stems(s) & stems(question)))
+        return f"{best} [1]"
 
 
 @lru_cache

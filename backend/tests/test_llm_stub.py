@@ -11,6 +11,13 @@ def test_stub_answers_with_first_sentence_and_citation():
     assert answer == "Заявление подаётся за 14 дней. [1]"
 
 
+def test_stub_picks_sentence_matching_the_question():
+    text = "Общие положения о компании. Заявление подаётся за 14 дней до отпуска. Прочие условия."
+    hit = Hit(1, 1, "a.txt", None, text, 0.9)
+    answer = ExtractiveStubLLM().complete(build_messages("За сколько дней подать заявление?", [hit], []))
+    assert answer == "Заявление подаётся за 14 дней до отпуска. [1]"
+
+
 def test_stub_says_no_answer_without_context():
     assert ExtractiveStubLLM().complete([{"role": "user", "content": "ВОПРОС: ?"}]) == "NO_ANSWER"
 
